@@ -1,6 +1,6 @@
 # Strava Places Parser
 
-Prosta aplikacja FastAPI, ktora loguje uzytkownika przez Strava OAuth, otwiera lokalna strone z 10 ostatnimi aktywnosciami i pozwala wyeksportowac miejscowosci z wybranej trasy do CSV.
+Prosta aplikacja FastAPI, ktora loguje uzytkownika przez Strava OAuth, otwiera lokalna strone z aktywnosciami i pozwala wyeksportowac miejscowosci z wybranej trasy do CSV.
 
 ## Konfiguracja Stravy
 
@@ -80,9 +80,6 @@ Zaznacz jedna aktywnosc i kliknij `Eksportuj miejscowosci`, aby pobrac plik CSV 
 
 Eksport korzysta z punktow GPS Stravy oraz danych OpenStreetMap pobieranych przez Overpass API. Aplikacja pobiera miejscowosci dla obszaru trasy jednym zapytaniem, a potem lokalnie sprawdza poligony i pobliskie punkty miejscowosci.
 
-Dla miejscowosci bez poligonu aplikacja uzywa punktu `place=*` tylko wtedy, gdy znajduje sie bardzo blisko sladu. To ogranicza falszywe trafienia pobliskich wsi/czesci wsi.
-
-Lokalny serwer zatrzymasz w terminalu skrotem `Ctrl+C`.
 
 ## Wersja desktop
 
@@ -102,22 +99,12 @@ Uruchom:
 python desktop_app.py
 ```
 
-W Stravie nadal ustaw:
+W Stravie ustaw `Authorization Callback Domain` zgodnie z hostem z Twojego callbacku (np. `localhost`).
 
-```text
-Authorization Callback Domain: localhost
-```
-
-Desktop domyslnie uzywa osobnego lokalnego callbacku, zeby nie kolidowac z wersja web na porcie `8000`:
+Dane aplikacji Strava (Client ID, Client Secret, pelny adres callbacku) mozesz trzymac lokalnie w pliku `strava_desktop_config.json` obok `desktop_app.py` albo obok skompilowanego `.exe`. Przy starcie pola w oknie uzupelniaja sie z tego pliku; adres callbacku mozesz tez wpisac lub zmienic recznie w polu `Callback URL`. Callback musi byc `http`, ten sam adres musi byc wpisany w ustawieniach aplikacji na stronie Stravy. Przykladowo inny port niz wersja web (`8000`) ogranicza konflikt portow:
 
 ```text
 http://localhost:8765/callback
-```
-
-Adres callbacku mozna zmienic bezposrednio w oknie desktopowym w polu `Callback URL`, np.:
-
-```text
-http://localhost:9001/callback
 ```
 
 ## VPS / domena
@@ -143,4 +130,3 @@ Callback bedzie mial postac:
 https://twojadomena.pl/callback
 ```
 
-Produkcjnie warto uruchomic aplikacje przez `systemd` i wystawic ja przez `nginx` jako reverse proxy.

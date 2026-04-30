@@ -2,7 +2,7 @@
 dist/
 build/
 
-# Python
+# Pythondd
 __pycache__/
 
 # Virtual environments
@@ -17,3 +17,6 @@ env/
 
 # Package metadata (editable install)
 *.egg-info/
+
+# Desktop — lokalne dane Strava
+strava_desktop_config.json

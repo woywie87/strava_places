@@ -1,4 +1,7 @@
+import json
+import os
 import secrets
+import sys
 import threading
 import time
 import tkinter as tk
@@ -17,17 +20,40 @@ from strava_core import (
     exchange_code_for_token,
     extract_places_from_activity,
     fetch_activities_page,
-    read_config,
 )
 
 
-DEFAULT_DESKTOP_REDIRECT_URI = "http://localhost:8765/callback"
 ACTIVITIES_PAGE_SIZE = 20
 STRAVA_API_PAGE_SIZE = 20
 STATUS_DEFAULT_COLOR = "#374151"
 STATUS_PROGRESS_COLOR = "#2563eb"
 STATUS_SUCCESS_COLOR = "#15803d"
 STATUS_ERROR_COLOR = "#dc2626"
+
+DESKTOP_STRAVA_CONFIG_FILENAME = "strava_desktop_config.json"
+
+
+def desktop_strava_config_path():
+    if getattr(sys, "frozen", False):
+        return os.path.join(os.path.dirname(sys.executable), DESKTOP_STRAVA_CONFIG_FILENAME)
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), DESKTOP_STRAVA_CONFIG_FILENAME)
+
+
+def load_desktop_strava_config():
+    path = desktop_strava_config_path()
+    if not os.path.isfile(path):
+        return "", "", ""
+    try:
+        with open(path, encoding="utf-8") as config_file:
+            data = json.load(config_file)
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError, TypeError):
+        return "", "", ""
+    if not isinstance(data, dict):
+        return "", "", ""
+    client_id = str(data.get("client_id") or "").strip()
+    client_secret = str(data.get("client_secret") or "").strip()
+    callback_url = str(data.get("callback_url") or "").strip()
+    return client_id, client_secret, callback_url
 
 
 class DesktopOAuthCallbackHandler(BaseHTTPRequestHandler):
@@ -75,7 +101,7 @@ def parse_callback_url(callback_url):
     if parsed_url.scheme != "http":
         raise ValueError("Desktopowy callback musi uzywac schematu http.")
     if not parsed_url.hostname:
-        raise ValueError("Podaj pelny adres callbacku, np. http://localhost:8765/callback.")
+        raise ValueError("Podaj pelny adres callbacku (http, host, port i sciezka).")
 
     callback_path = parsed_url.path or "/callback"
     port = parsed_url.port or 80
@@ -133,17 +159,15 @@ class DesktopApp:
 
         self.client_id_var = tk.StringVar()
         self.client_secret_var = tk.StringVar()
-        self.callback_url_var = tk.StringVar(value=DEFAULT_DESKTOP_REDIRECT_URI)
+        self.callback_url_var = tk.StringVar()
         self.radius_var = tk.IntVar(value=PLACE_NODE_MATCH_RADIUS_METERS)
         self.status_var = tk.StringVar(value="Wpisz dane aplikacji Strava i zaloguj sie.")
         self.page_var = tk.StringVar(value="Strona 0")
 
-        try:
-            client_id, client_secret = read_config()
-            self.client_id_var.set(client_id)
-            self.client_secret_var.set(client_secret)
-        except RuntimeError:
-            pass
+        file_client_id, file_client_secret, file_callback_url = load_desktop_strava_config()
+        self.client_id_var.set(file_client_id)
+        self.client_secret_var.set(file_client_secret)
+        self.callback_url_var.set(file_callback_url)
 
         self.root.title("Strava Places Parser")
         self.root.geometry("1100x620")
@@ -260,6 +284,12 @@ class DesktopApp:
         callback_url = self.callback_url_var.get().strip()
         if not client_id or not client_secret:
             messagebox.showerror("Brak danych", "Podaj Client ID i Client Secret.")
+            return
+        if not callback_url:
+            messagebox.showerror(
+                "Brak callbacku",
+                "Podaj Callback URL w polu albo w pliku strava_desktop_config.json (klucz callback_url).",
+            )
             return
         try:
             parse_callback_url(callback_url)
