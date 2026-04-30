@@ -1,0 +1,19 @@
+# PyInstaller
+dist/
+build/
+
+# Python
+__pycache__/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Tool caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Package metadata (editable install)
+*.egg-info/
