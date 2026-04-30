@@ -1,53 +1,53 @@
 # Strava Places Parser
 
-Prosta aplikacja FastAPI, ktora loguje uzytkownika przez Strava OAuth, otwiera lokalna strone z aktywnosciami i pozwala wyeksportowac miejscowosci z wybranej trasy do CSV.
+A small FastAPI app that signs the user in with Strava OAuth, opens a local page with activities, and lets you export settlements (localities) from a selected route to CSV.
 
-## Konfiguracja Stravy
+## Strava setup
 
-1. Wejdz na <https://www.strava.com/settings/api>.
-2. Utworz aplikacje albo uzyj istniejacej.
-3. Lokalnie w polu `Authorization Callback Domain` wpisz:
+1. Open <https://www.strava.com/settings/api>.
+2. Create an app or use an existing one.
+3. For local use, set `Authorization Callback Domain` to:
 
 ```text
 localhost
 ```
 
-4. Skopiuj `Client ID` i `Client Secret`.
+4. Copy `Client ID` and `Client Secret`.
 
-Callback lokalny aplikacji to:
+The app’s local callback URL is:
 
 ```text
 http://localhost:8000/callback
 ```
 
-## Uruchomienie
+## Running the web app
 
-Zainstaluj zaleznosci:
+Install dependencies:
 
 ```powershell
 python -m pip install -r requirements.txt
 ```
 
-Ustaw dane aplikacji Strava w `strava_activities.py` albo jako zmienne srodowiskowe:
+Configure your Strava app either in `strava_activities.py` or with environment variables:
 
 ```powershell
-$env:STRAVA_CLIENT_ID = "twoj-client-id"
-$env:STRAVA_CLIENT_SECRET = "twoj-client-secret"
+$env:STRAVA_CLIENT_ID = "your-client-id"
+$env:STRAVA_CLIENT_SECRET = "your-client-secret"
 ```
 
-Uruchom aplikacje:
+Start the app:
 
 ```powershell
 python strava_activities.py
 ```
 
-Domyslnie web startuje na:
+By default the web UI is at:
 
 ```text
 http://localhost:8000/
 ```
 
-Mozesz zmienic host, port i publiczny adres callbacku przez zmienne srodowiskowe:
+You can change host, port, and the public callback base URL with environment variables:
 
 ```powershell
 $env:WEB_HOST = "127.0.0.1"
@@ -56,77 +56,57 @@ $env:APP_BASE_URL = "http://localhost:9000"
 python strava_activities.py
 ```
 
-Wtedy callback bedzie:
+The callback URL then becomes:
 
 ```text
 http://localhost:9000/callback
 ```
 
-Albo bezposrednio przez uvicorn:
+Or run uvicorn directly:
 
 ```powershell
 uvicorn strava_activities:app --reload
 ```
 
-Nastepnie wejdz w przegladarce na:
+Then open:
 
 ```text
 http://localhost:8000/
 ```
 
-Kliknij `Zaloguj przez Strave`. Po zatwierdzeniu dostepu Strava przekieruje na `http://localhost:8000/callback`, a aplikacja pokaze tabele aktywnosci.
+Click **Log in with Strava**. After you approve access, Strava redirects to `http://localhost:8000/callback` and the app shows the activity table.
 
-Zaznacz jedna aktywnosc i kliknij `Eksportuj miejscowosci`, aby pobrac plik CSV z unikalnymi miejscowosciami z trasy.
+Select one activity and click **Export settlements** to download a CSV of unique settlements along the route.
 
-Eksport korzysta z punktow GPS Stravy oraz danych OpenStreetMap pobieranych przez Overpass API. Aplikacja pobiera miejscowosci dla obszaru trasy jednym zapytaniem, a potem lokalnie sprawdza poligony i pobliskie punkty miejscowosci.
+The export uses Strava GPS points and OpenStreetMap data from the Overpass API. The app queries settlements for the route area in one request, then checks polygons and nearby settlement nodes locally.
 
+## Desktop version
 
-## Wersja desktop
+The desktop build is a separate **tkinter** windowed app. It does not use WebView or run the FastAPI server, but reuses the same logic for login, fetching activities, and exporting settlements.
 
-Wersja desktop jest osobna aplikacja okienkowa `tkinter`. Nie uzywa WebView i nie uruchamia serwera FastAPI, ale korzysta z tych samych funkcji do logowania, pobierania aktywnosci i eksportu miejscowosci.
+The desktop client requests **20 activities per page** from the Strava API. **Next** loads the next API page; **Previous** goes back to a page already loaded in memory.
 
-Desktop odpytuje API Stravy po 20 aktywnosci na strone. `Nastepna` pobiera kolejna strone API, a `Poprzednia` wraca do juz pobranej strony z cache. Wyszukiwanie po nazwie uruchamia sie dopiero po kliknieciu lupki i resetuje liste od pierwszej strony API.
-
-Zainstaluj zaleznosci desktopowe:
+Install desktop dependencies:
 
 ```powershell
 python -m pip install -r requirements-desktop.txt
 ```
 
-Uruchom:
+Run:
 
 ```powershell
 python desktop_app.py
 ```
 
-W Stravie ustaw `Authorization Callback Domain` zgodnie z hostem z Twojego callbacku (np. `localhost`).
+In Strava, set `Authorization Callback Domain` to match the host in your callback URL (e.g. `localhost`).
 
-Dane aplikacji Strava (Client ID, Client Secret, pelny adres callbacku) mozesz trzymac lokalnie w pliku `strava_desktop_config.json` obok `desktop_app.py` albo obok skompilowanego `.exe`. Przy starcie pola w oknie uzupelniaja sie z tego pliku; adres callbacku mozesz tez wpisac lub zmienic recznie w polu `Callback URL`. Callback musi byc `http`, ten sam adres musi byc wpisany w ustawieniach aplikacji na stronie Stravy. Przykladowo inny port niz wersja web (`8000`) ogranicza konflikt portow:
+You can keep Strava app credentials locally in `strava_desktop_config.json` next to `desktop_app.py` or next to the built `.exe`. On startup the form fields are filled from that file; you can also type or edit **Callback URL** in the UI. The callback must use `http`, and the same URL must be configured in your Strava API application settings. Using a different port than the web app (`8000`) avoids port clashes—for example:
 
 ```text
 http://localhost:8765/callback
 ```
 
-## VPS / domena
+The desktop app does **not** read `STRAVA_CLIENT_ID` / `STRAVA_CLIENT_SECRET` from the environment; use the JSON file or the form fields.
 
-Na serwerze ustaw publiczny adres aplikacji:
-
-```bash
-export APP_BASE_URL="https://twojadomena.pl"
-export STRAVA_CLIENT_ID="twoj-client-id"
-export STRAVA_CLIENT_SECRET="twoj-client-secret"
-uvicorn strava_activities:app --host 127.0.0.1 --port 8000
-```
-
-W Stravie ustaw wtedy `Authorization Callback Domain` na domene, np.:
-
-```text
-twojadomena.pl
-```
-
-Callback bedzie mial postac:
-
-```text
-https://twojadomena.pl/callback
-```
+To build a Windows folder bundle, run `build_desktop.ps1`. If `strava_desktop_config.json` exists in the project root, it is copied next to `StravaPlaces.exe` in `dist\StravaPlaces\`.
 
